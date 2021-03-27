@@ -1,0 +1,257 @@
+import pyaudio
+import wave
+import struct
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+import glob
+import sys
+import os
+from scipy.fftpack import fft
+from scipy.io import wavfile
+
+CHUNK = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 2
+RATE = 44100
+RECORD_SECONDS = 5
+WAVE_OUTPUT_FILENAME = r"C:\Users\Monali Fernando\Desktop\wave files\output.wav"
+
+p = pyaudio.PyAudio()
+
+stream = p.open(format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK)
+
+print("Started Recording...")
+
+frames = []
+
+for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+    data = stream.read(CHUNK)
+    frames.append(data)
+
+print("Recording finished. \nOutput audio file will be saved!\n Started analyzing..")
+
+stream.stop_stream()
+stream.close()
+p.terminate()
+
+wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+wf.setnchannels(CHANNELS)
+wf.setsampwidth(p.get_sample_size(FORMAT))
+wf.setframerate(RATE)
+wf.writeframes(b''.join(frames))
+wf.close()
+
+wav =wave.open(r"C:\Users\Monali Fernando\Desktop\wave files\output.wav")
+#---
+raw=wav.readframes(-1)
+raw=np.frombuffer(raw,"Int16")
+sampleRate = wav.getframerate()
+
+if wav.getnchannels() == 5:
+    print("file is not supported")
+    sys.exit(0)
+Time = np.linspace(0,len(raw)/sampleRate, num=len(raw))
+plt.title("Baby cry signal")
+plt.plot(Time, raw, color="blue")
+plt.ylabel("Amplitude")
+plt.savefig(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\output")
+plt.show()
+
+#****************************************************************
+#finding similarity
+print ("Start calculaing")
+original = cv2.imread(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\output.png')
+
+#cv2.imshow("Original image ",original)
+
+sift = cv2.xfeatures2d.SIFT_create()
+kp_1, desc_1 = sift.detectAndCompute(original, None)
+index_params = dict(algorithm=0, trees=5)
+search_params = dict()
+flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+
+ # Load all the images for hunger
+all_images_to_compare = []
+titles = []
+sum = 0
+
+for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\test hunger\*"):
+        image = cv2.imread(f)
+        titles.append(f)
+        all_images_to_compare.append(image)
+
+        for image_to_compare, title in zip(all_images_to_compare, titles):
+            # Check if 2 images are equals
+            if original.shape == image_to_compare.shape:
+                    # print("The images have same size and channels")
+                    difference = cv2.subtract(original, image_to_compare)
+                    b, g, r = cv2.split(difference)
+                    if cv2.countNonZero(b) == 0 and cv2.countNonZero(g) == 0 and cv2.countNonZero(r) == 0:
+                        print("Similarity: 100% (equal size and channels)")
+
+
+                # Check for similarities between the 2 images
+            kp_2, desc_2 = sift.detectAndCompute(image_to_compare, None)
+            matches = flann.knnMatch(desc_1, desc_2, k=2)
+            good_points = []
+            for m, n in matches:
+                    if m.distance > 0.6 * n.distance:
+                        good_points.append(m)
+            number_keypoints = 0
+            # (original>=compare image)
+            if len(kp_1) >= len(kp_2):
+                number_keypoints = len(kp_1)
+            else:
+                number_keypoints = len(kp_2)
+        print("Image: " + title)
+        percentage_similarity = len(good_points) / number_keypoints * 100
+        sum = sum + percentage_similarity
+        # print(len(good_points) / number_keypoints)
+average1  = sum/22
+print(average1)
+
+
+########################################################
+ # Load all the images for pain
+all_images_to_compare2 = []
+titles = []
+sum2=0
+
+for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\test pain\*"):
+        image = cv2.imread(f)
+        titles.append(f)
+        all_images_to_compare2.append(image)
+
+        for image_to_compare2, title in zip(all_images_to_compare2, titles):
+            # Check if 2 images are equals
+            if original.shape == image_to_compare2.shape:
+                    # print("The images have same size and channels")
+                    difference2 = cv2.subtract(original, image_to_compare2)
+                    b, g, r = cv2.split(difference2)
+                    if cv2.countNonZero(b) == 0 and cv2.countNonZero(g) == 0 and cv2.countNonZero(r) == 0:
+                        print("Similarity: 100% (equal size and channels)")
+
+
+                # Check for similarities between the 2 images
+            kp_3, desc_3 = sift.detectAndCompute(image_to_compare2, None)
+            matches = flann.knnMatch(desc_1, desc_3, k=2)
+            good_points = []
+            for m, n in matches:
+                    if m.distance > 0.6 * n.distance:
+                        good_points.append(m)
+            number_keypoints = 0
+            # (original>=compare image)
+            if len(kp_1) >= len(kp_3):
+                number_keypoints = len(kp_1)
+            else:
+                number_keypoints = len(kp_3)
+        print("Image: " + title)
+        percentage_similarity2 = len(good_points) / number_keypoints * 100
+        sum2 = sum2 + percentage_similarity2
+        # print(len(good_points) / number_keypoints)
+average2  = sum2/22
+print(average2)
+if (average1 > average2):
+        print("The baby feels hunger..")
+else:
+        print("pain")
+
+
+
+
+
+
+
+
+
+
+# *****************
+# if (len(good_points) / number_keypoints * 100 >= 60):
+#         print("The baby feels hungry..")
+# else:
+#         print("The baby feels discomfort..")
+# not_similar =  100 - (len(good_points) / number_keypoints * 100)
+# print("Similarity: " + str(int(percentage_similarity)) + "% | Differences: "+ str(int(not_similar)) + "%\n")
+
+# # test image
+# image = cv2.imread(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\output.png')
+# gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# histogram = cv2.calcHist([gray_image], [0],
+#                          None, [256], [0, 256])
+#*****************************************************
+# # data1 image
+# all_images_to_compare = []
+# titles = []
+#
+# for f in glob.iglob(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\test hunger\*'):
+#          image = cv2.imread(f)
+#          titles.append(f)
+#          all_images_to_compare.append(image)
+#
+# # image = cv2.imread(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\test hunger\*')
+# gray_image1 = cv2.cvtColor(np.array(all_images_to_compare), cv2.COLOR_BGR2GRAY)
+# histogram1 = cv2.calcHist([gray_image1], [0],
+#                           None, [256], [0, 256])
+#
+# c1, c2 = 0, 0
+# # Euclidean Distace between data1 and test
+# i = 0
+# while i < len(histogram) and i < len(histogram1):
+#     c1 += (histogram[i] - histogram1[i]) ** 2
+#     i += 1
+# c1 = c1 ** (1 / 2)
+# print("hunger image is more similar to test.jpg as compare to data2.jpg")
+#
+# # ------------------------------------------------------
+# all_images_to_compare2 = []
+# titles = []
+#
+# for f in glob.iglob(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\test pain\*'):
+#          image = cv2.imread(f)
+#          titles.append(f)
+#          all_images_to_compare2.append(image)
+# # data2 image
+# # image = cv2.imread(r'C:\Users\Monali Fernando\Desktop\Cry spectrum images\test pain\*')
+# gray_image2 = cv2.cvtColor(np.array(all_images_to_compare2), cv2.COLOR_BGR2GRAY)
+# histogram2 = cv2.calcHist([gray_image2], [0],
+#                           None, [256], [0, 256])
+#
+#
+# # Euclidean Distace between data2 and test
+# i = 0
+# while i < len(histogram) and i < len(histogram2):
+#     c2 += (histogram[i] - histogram2[i]) ** 2
+#     i += 1
+# c2 = c2 ** (1 / 2)
+# print("pain image is more similar to test.jpg as compare to data2.jpg")
+#
+# # ******************************
+#
+# # c1, c2 = 0, 0
+# # Euclidean Distace between data1 and test
+# i = 0
+# while i < len(histogram) and i < len(histogram1):
+#     c1 += (histogram[i] - histogram1[i]) ** 2
+#     i += 1
+# c1 = c1 ** (1 / 2)
+#
+# # Euclidean Distace between data2 and test
+# i = 0
+# while i < len(histogram) and i < len(histogram2):
+#     c2 += (histogram[i] - histogram2[i]) ** 2
+#     i += 1
+# c2 = c2 ** (1 / 2)
+#
+# if (c1 < c2):
+#     print("hunger is more similar to test.jpg as compare to data2.jpg")
+# else:
+#     print("pain is more similar to test.jpg as compare to data1.jpg")
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
