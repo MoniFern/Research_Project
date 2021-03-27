@@ -109,7 +109,7 @@ for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\train
                 number_keypoints = len(kp_1)
             else:
                 number_keypoints = len(kp_2)
-        print("Image: " + title)
+        print("Image : " + title)
         percentage_similarity = len(good_points) / number_keypoints * 100
         print("Similarity: " + str(int(percentage_similarity)) + "%")
         sum = sum + percentage_similarity
@@ -150,7 +150,7 @@ for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\train
                 number_keypoints = len(kp_1)
             else:
                 number_keypoints = len(kp_3)
-        print("Image: " + title)
+        print("Image : " + title)
         percentage_similarity2 = len(good_points) / number_keypoints * 100
         print("Similarity: " + str(int(percentage_similarity2)) + "%")
         sum2 = sum2 + percentage_similarity2
@@ -162,7 +162,7 @@ all_images_to_compare3 = []
 titles = []
 sum3=0
 
-for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\trainSet discomfort\*"):
+for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\trainSet diff\*"):
         image = cv2.imread(f)
         titles.append(f)
         all_images_to_compare3.append(image)
@@ -190,7 +190,7 @@ for f in glob.iglob(r"C:\Users\Monali Fernando\Desktop\Cry spectrum images\train
                 number_keypoints = len(kp_1)
             else:
                 number_keypoints = len(kp_4)
-        print("Image: " + title)
+        print("Image : " + title)
         percentage_similarity3 = len(good_points) / number_keypoints * 100
         print("Similarity: " + str(int(percentage_similarity3)) + "%")
         sum3 = sum3 + percentage_similarity3
